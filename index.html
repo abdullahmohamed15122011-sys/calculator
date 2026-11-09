@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101a35">
+<title>حاسبة مستحقات الشركات</title>
+<style>
+:root{--navy:#101a35;--blue:#3156b8;--ink:#1d2b4d;--muted:#6d7890;--line:#e4e9f2;--bg:#f3f6fb;--white:#fff}
+*{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;background:var(--bg);font-family:Tahoma,Arial,sans-serif;color:var(--ink);line-height:1.7}
+header{background:linear-gradient(135deg,#101a35,#243e78);color:white;padding:28px 18px 34px;text-align:center}
+.brand{display:inline-block;font:800 18px Georgia,'Times New Roman',serif;letter-spacing:6px;margin:0 0 12px;padding:0 0 8px;direction:ltr;color:#d4af37;background:linear-gradient(90deg,#b8860b 0%,#f6e27a 30%,#fff3b0 50%,#f6e27a 70%,#b8860b 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;border-bottom:1px solid #d4af3766}header h1{margin:0 0 5px;font-size:25px}header p{margin:0;color:#dbe5ff;font-size:14px}
+main{width:min(720px,calc(100% - 24px));margin:-17px auto 35px}
+.panel{background:white;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 8px 28px #14264a0d;margin-bottom:15px}
+h2{font-size:17px;margin:0 0 15px;color:#203768}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}
+label{font-size:13px;font-weight:700;color:#344568}
+input,select{width:100%;height:48px;border:1px solid #d7deeb;border-radius:11px;padding:0 12px;background:#fff;color:#172746;font:inherit;font-size:15px;outline:none}
+input:focus,select:focus{border-color:#5374d2;box-shadow:0 0 0 3px #5374d21c}
+button{width:100%;border:0;border-radius:12px;height:50px;background:var(--blue);color:white;font:700 16px Tahoma,Arial;cursor:pointer;margin-top:16px}
+button:active{transform:scale(.99)}
+#result{display:none}.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:13px}
+table{width:100%;border-collapse:collapse;background:white;font-size:14px}
+th,td{padding:12px 13px;border-bottom:1px solid var(--line);text-align:right}
+th{font-weight:700;color:#344568}thead th{background:#f6f8fd;font-size:12px;color:#6d7890}td{font-weight:700;white-space:nowrap;color:#203768}
+tr:last-child th,tr:last-child td{border-bottom:0}
+tr.hl{background:#fff3b0}tr.hl th,tr.hl td{color:#5c4400}tr.total{background:#edf2ff}tr.total th,tr.total td{color:#173b9e;font-size:15px;font-weight:800}
+.note{font-size:12px;color:var(--muted);margin:13px 2px 0}
+.hint{font-size:11.5px;color:var(--muted);margin:0}.error{display:none;color:#a12d36;background:#fff0f0;padding:10px;border-radius:9px;margin-top:12px;font-size:13px}
+footer{text-align:center;color:#8a94a8;font-size:11px;padding:4px 12px 22px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.field.full{grid-column:auto}header h1{font-size:22px}.panel{padding:16px}th,td{padding:11px 9px;font-size:13px}}
+</style>
+</head>
+<body>
+<header>
+<div class="brand">ABOELAZAYEM</div>
+<h1>حاسبة مستحقات الشركات</h1>
+<p>احسب الخصومات وصافي المستحق في جدول واحد</p>
+</header>
+<main>
+<section class="panel">
+<h2>بيانات المستخلص</h2>
+<div class="grid">
+<div class="field full" id="currencyField">
+<label for="currency">العملة</label>
+<select id="currency">
+<option value="EGP">جنيه مصري (EGP)</option><option value="USD">دولار أمريكي (USD)</option><option value="EUR">يورو (EUR)</option><option value="GBP">جنيه إسترليني (GBP)</option>
+</select>
+</div>
+<div class="field full" id="rateField" style="display:none">
+<label for="rate" id="rateLabel">سعر الصرف (جنيه مصري مقابل 1 دولار)</label>
+<input id="rate" type="number" min="0" step="0.0001" inputmode="decimal" placeholder="مثال: 50">
+<p class="hint">أدخل سعر الصرف المعتمد في المستخلص. الدمغة وحد الخصم (300 جنيه) تُحسب بالجنيه المصري.</p>
+</div>
+<div class="field full">
+<label for="amount" id="amountLabel">إجمالي القيمة قبل الضريبة (جنيه مصري)</label>
+<input id="amount" type="number" min="0" step="0.01" inputmode="decimal" placeholder="مثال: 10000">
+</div>
+<div class="field">
+<label for="vatRate">نسبة ضريبة القيمة المضافة (%)</label>
+<input id="vatRate" type="number" min="0" step="0.01" value="14" inputmode="decimal">
+</div>
+<div class="field">
+<label for="kind">نوع المعاملة</label>
+<select id="kind">
+<option value="contract">مقاولات</option><option value="supply">توريدات</option><option value="purchase">مشتريات</option><option value="service">خدمات</option><option value="commission">عمولة أو سمسرة</option>
+</select>
+</div>
+<div class="field full">
+<label for="status">حالة المورد الضريبية</label>
+<select id="status">
+<option value="normal">خاضع لنظام الخصم المعتاد</option>
+<option value="law6">مستفيد من النظام المبسط وفق القانون 6 لسنة 2025</option>
+<option value="advance">لديه شهادة سارية بالدفعات المقدمة</option>
+</select>
+</div>
+</div>
+<button id="calculate">احسب المستحق</button>
+<div class="error" id="error">من فضلك أدخل قيمة صحيحة ونسبة ضريبة صحيحة، وسعر صرف صحيح عند اختيار عملة أجنبية.</div>
+</section>
+<section class="panel" id="result">
+<h2>تفاصيل الحساب</h2>
+<div class="table-wrap"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div>
+<p class="note">الحساب تقديري وفق الإعدادات والنسب المدخلة. راجع انطباق أحكام الدمغة والخصم تحت حساب الضريبة والتوريد من ضريبة القيمة المضافة على الجهة والمعاملة والمستندات قبل اعتماد المستخلص.</p>
+</section>
+</main>
+<footer>حاسبة مستحقات الشركات — أداة حسابية مستقلة</footer>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+function stampDuty(a){
+  if(a<=50)return 0;
+  const r=a<=250?.012:a<=500?.013:a<=1000?.014:a<=5000?.015:.016;
+  const base=a<=10000?(a-50)*r:9950*.016+(a-10000)*.006;
+  return base*4;
+}
+const CUR={EGP:{n:'جنيه مصري',s:'جنيه'},USD:{n:'دولار',s:'دولار'},EUR:{n:'يورو',s:'يورو'},GBP:{n:'جنيه إسترليني',s:'جنيه إسترليني'}};
+function onCurrency(){
+ const c=$('currency').value, foreign=c!=='EGP';
+ $('rateField').style.display=foreign?'flex':'none';
+ $('amountLabel').textContent='إجمالي القيمة قبل الضريبة ('+CUR[c].n+')';
+ $('rateLabel').textContent='سعر الصرف (جنيه مصري مقابل 1 '+CUR[c].n+')';
+ $('result').style.display='none';
+}
+function calculate(){
+ const cur=$('currency').value, foreign=cur!=='EGP';
+ const aIn=Number($('amount').value), vr=Number($('vatRate').value);
+ const rate=foreign?Number($('rate').value):1;
+ if(!Number.isFinite(aIn)||!Number.isFinite(vr)||aIn<0||vr<0||$('amount').value===''||$('vatRate').value===''||(foreign&&(!Number.isFinite(rate)||rate<=0||$('rate').value===''))){
+  $('error').style.display='block';$('result').style.display='none';return;
+ }
+ $('error').style.display='none';
+ const a=aIn*rate; // all calculations in EGP
+ const vat=a*vr/100, gross=a+vat, vatRemit=vat*.20;
+ const kind=$('kind').value, status=$('status').value;
+ const rates={contract:.01,supply:.01,purchase:.01,service:.03,commission:.05};
+ let income=0;
+ if(status==='normal'&&a>300)income=a*rates[kind];
+ const stamp=stampDuty(a);
+ const deductions=stamp+income+vatRemit;
+ const net=gross-deductions;
+ const money=[
+  ['إجمالي القيمة قبل الضريبة',a],
+  ['قيمة ضريبة القيمة المضافة',vat],
+  ['إجمالي القيمة بعد إضافة الضريبة',gross],
+  ['دمغة الصرفيات الحكومية',stamp,'hl'],
+  ['ضريبة الأرباح التجارية والصناعية',income,'hl'],
+  ['خصم 20٪ من ضريبة القيمة المضافة',vatRemit,'hl'],
+  ['إجمالي الخصومات',deductions,'total'],
+  ['المبلغ النهائي المستحق',net,'total']
+ ];
+ const cell=(v,s)=>fmt(v)+' '+s;
+ const rows=money.map(r=>{
+  if(r===null)return `<tr><th>نسبة ضريبة القيمة المضافة</th><td${foreign?' colspan="2"':''}>${fmt(vr)}٪</td></tr>`;
+  const [k,egp,c]=r;
+  const main=foreign?cell(egp/rate,CUR[cur].s):cell(egp,'جنيه');
+  const second=foreign?`<td>${cell(egp,'جنيه')}</td>`:'';
+  return `<tr class="${c||''}"><th>${k}</th><td>${main}</td>${second}</tr>`;
+ });
+ $('head').innerHTML=foreign?`<tr><th></th><th>${CUR[cur].n}</th><th>جنيه مصري</th></tr>`:'';
+ $('rows').innerHTML=rows.join('');
+ $('result').style.display='block';
+ $('result').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('currency').addEventListener('change',onCurrency);
+$('calculate').addEventListener('click',calculate);
+['amount','rate'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')calculate()}));
+</script>
+</body>
+</html>
